@@ -652,6 +652,7 @@ report = print_rare_event_report(<br>
 <footer class="wrap">
   <span>raretect — rare-event detection toolkit</span>
   <span>MIT licensed · built for research</span>
+  <span><a href="admin.html" style="color:var(--signal); text-decoration:none;">Admin Portal →</a></span>
 </footer>
 
 <script>
@@ -724,10 +725,30 @@ report = print_rare_event_report(<br>
     status.textContent = '';
     status.className = 'form-status';
 
-    // Simulated robust response handling with mailto fallback on static hosting
+    // Store lead into localStorage for Admin Portal tracking
+    const now = new Date();
+    const dateStr = now.toISOString().replace('T', ' ').substring(0, 16);
+    const newLead = {
+      date: dateStr,
+      name: payload.name || 'Anonymous',
+      email: payload.email || 'N/A',
+      lab: payload.lab || 'N/A',
+      domain: payload.domain || 'physics',
+      size: payload.dataset_size || 'N/A',
+      contamination: payload.contamination_rate || '<1%',
+      message: payload.message || 'No description provided.',
+      status: 'New'
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('raretect_pilot_leads') || '[]');
+      existing.unshift(newLead);
+      localStorage.setItem('raretect_pilot_leads', JSON.stringify(existing));
+    } catch(err){}
+
     setTimeout(() => {
       form.reset();
-      status.textContent = '✓ Pilot request received — we\'ll reach out to your lab by email!';
+      status.textContent = '✓ Pilot request received — view in Admin Portal or check email!';
       status.className = 'form-status ok';
       status.style.display = 'block';
       submitBtn.disabled = false;

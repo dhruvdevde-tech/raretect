@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Portal — raretect</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23FF6B4A'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#0A0D14;
+    --paper-dim:#10141D;
+    --ink:#ECEEF3;
+    --ink-soft:#93A0B4;
+    --line:#232A38;
+    --signal:#FF6B4A;
+    --signal-dim:rgba(255,107,74,0.16);
+    --panel:#12161F;
+    --panel-2:#161B26;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --disp: 'Space Grotesk', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--sans);
+    min-height:100vh; display:flex; flex-direction:column; justify-content:space-between;
+  }
+
+  header{
+    background:var(--panel); border-bottom:1px solid var(--line); padding:16px 28px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .logo{
+    font-family:var(--disp); font-weight:700; font-size:18px; color:var(--ink); text-decoration:none;
+    display:flex; align-items:center; gap:8px;
+  }
+  .logo .dot{ width:8px; height:8px; border-radius:50%; background:var(--signal); }
+  .badge{ font-family:var(--mono); font-size:11px; color:var(--signal); background:var(--signal-dim); padding:3px 8px; border-radius:2px; }
+
+  /* Login Screen */
+  .auth-container{
+    max-width:400px; margin:80px auto; padding:32px; background:var(--panel);
+    border:1px solid var(--line); border-radius:6px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .auth-container h2{ font-family:var(--disp); font-size:22px; margin-bottom:8px; }
+  .auth-container p{ font-size:14px; color:var(--ink-soft); margin-bottom:24px; }
+  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  .field label{ font-family:var(--mono); font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; }
+  .field input{
+    background:var(--paper); border:1px solid var(--line); border-radius:3px;
+    color:var(--ink); font-family:var(--sans); font-size:14.5px; padding:10px 12px;
+  }
+  .field input:focus{ outline:none; border-color:var(--signal); box-shadow:0 0 0 3px var(--signal-dim); }
+  .btn{
+    font-family:var(--mono); font-size:13.5px; font-weight:500; padding:12px 20px;
+    background:var(--signal); color:#fff; border:none; border-radius:2px; cursor:pointer; width:100%;
+    transition:background .15s;
+  }
+  .btn:hover{ background:#d1492f; }
+  .auth-error{ color:var(--signal); font-family:var(--mono); font-size:12.5px; margin-top:12px; display:none; }
+
+  /* Admin Dashboard */
+  .dashboard{ display:none; max-width:1120px; margin:32px auto; padding:0 28px; width:100%; }
+  .dash-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:16px; }
+  .dash-head h1{ font-family:var(--disp); font-size:28px; }
+  .dash-actions{ display:flex; gap:12px; }
+  .btn-sm{
+    font-family:var(--mono); font-size:12px; padding:8px 14px; background:var(--panel-2);
+    color:var(--ink); border:1px solid var(--line); border-radius:2px; cursor:pointer; text-decoration:none;
+  }
+  .btn-sm:hover{ border-color:var(--ink); }
+
+  .stats-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:32px; }
+  @media(max-width:768px){ .stats-grid{ grid-template-columns:1fr 1fr; } }
+  .stat-card{ background:var(--panel); border:1px solid var(--line); padding:20px; border-radius:4px; }
+  .stat-card .num{ font-family:var(--mono); font-size:28px; font-weight:600; color:var(--ink); }
+  .stat-card .lbl{ font-family:var(--mono); font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; margin-top:4px; }
+  .stat-card.hl .num{ color:var(--signal); }
+
+  .table-box{ background:var(--panel); border:1px solid var(--line); border-radius:4px; overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; text-align:left; font-size:13.5px; }
+  th{
+    font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--ink-soft);
+    background:var(--paper-dim); padding:14px 16px; border-bottom:1px solid var(--line);
+  }
+  td{ padding:14px 16px; border-bottom:1px solid var(--line); color:var(--ink); vertical-align:top; }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover td{ background:rgba(255,255,255,0.02); }
+
+  .tag{ font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:2px; display:inline-block; }
+  .tag-new{ background:rgba(255,107,74,0.15); color:var(--signal); }
+  .tag-contacted{ background:rgba(127,217,154,0.15); color:#7FD99A; }
+
+  footer{ border-top:1px solid var(--line); padding:20px 28px; font-family:var(--mono); font-size:12px; color:var(--ink-soft); text-align:center; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="/"><span class="dot"></span>raretect <span class="badge">ADMIN</span></a>
+  <div id="headerUser" style="display:none; font-family:var(--mono); font-size:12.5px; color:var(--ink-soft);">
+    Logged in as <b style="color:var(--ink);">admin</b> · <a href="#" id="btnLogout" style="color:var(--signal); text-decoration:none;">Logout</a>
+  </div>
+</header>
+
+<div class="auth-container" id="authBox">
+  <h2>Admin Portal Login</h2>
+  <p>Enter credentials to manage raretect pilot requests.</p>
+  <form id="loginForm">
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" type="text" value="admin" required />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" value="raretect2026" required />
+    </div>
+    <button type="submit" class="btn">Log In →</button>
+    <div class="auth-error" id="authError">Invalid username or password.</div>
+  </form>
+</div>
+
+<div class="dashboard" id="dashBox">
+  <div class="dash-head">
+    <div>
+      <h1>Pilot Requests Dashboard</h1>
+      <p style="color:var(--ink-soft); font-size:14.5px;">Manage incoming research lab datasets and pilot requests.</p>
+    </div>
+    <div class="dash-actions">
+      <button class="btn-sm" id="btnExport">📥 Export CSV</button>
+      <button class="btn-sm" id="btnSeed">⚡ Add Demo Leads</button>
+      <button class="btn-sm" id="btnClear" style="color:var(--signal);">Clear All</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card hl">
+      <div class="num" id="statTotal">0</div>
+      <div class="lbl">Total Leads</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="statPhysics">0</div>
+      <div class="lbl">Physics / Astro Labs</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="statAvgSize">~50k</div>
+      <div class="lbl">Avg Dataset Size</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="statRate">&lt;1%</div>
+      <div class="lbl">Contamination Rate</div>
+    </div>
+  </div>
+
+  <div class="table-box">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Name / Email</th>
+          <th>Lab / Institution</th>
+          <th>Domain</th>
+          <th>Dataset Size</th>
+          <th>Status</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody id="leadsTable">
+        <tr>
+          <td colspan="7" style="text-align:center; padding:32px; color:var(--ink-soft);">No pilot requests submitted yet. Click "Add Demo Leads" to view sample data.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  <span>raretect Admin Portal · Internal Security System</span>
+</footer>
+
+<script>
+(function(){
+  const authBox = document.getElementById('authBox');
+  const dashBox = document.getElementById('dashBox');
+  const loginForm = document.getElementById('loginForm');
+  const authError = document.getElementById('authError');
+  const headerUser = document.getElementById('headerUser');
+  const btnLogout = document.getElementById('btnLogout');
+
+  const statTotal = document.getElementById('statTotal');
+  const statPhysics = document.getElementById('statPhysics');
+  const leadsTable = document.getElementById('leadsTable');
+
+  const btnExport = document.getElementById('btnExport');
+  const btnSeed = document.getElementById('btnSeed');
+  const btnClear = document.getElementById('btnClear');
+
+  const AUTH_KEY = 'raretect_admin_authed';
+  const LEADS_KEY = 'raretect_pilot_leads';
+
+  const DEMO_LEADS = [
+    {
+      date: '2026-07-28 11:42',
+      name: 'Dr. Sarah Lin',
+      email: 's.lin@cern.ch',
+      lab: 'CERN / ATLAS Experiment',
+      domain: 'physics',
+      size: '120,000 events',
+      contamination: '<0.5%',
+      message: 'Looking for multi-channel anomaly detection for rare Higgs decay channel filtering.',
+      status: 'New'
+    },
+    {
+      date: '2026-07-28 09:15',
+      name: 'Prof. Marcus Vance',
+      email: 'm.vance@stanford.edu',
+      lab: 'Stanford Dark Matter Group',
+      domain: 'physics',
+      size: '45,000 events',
+      contamination: '~1%',
+      message: 'Testing noble liquid TPC recoil data against correlated background noise.',
+      status: 'Contacted'
+    },
+    {
+      date: '2026-07-27 16:30',
+      name: 'Elena Rostova',
+      email: 'elena@genomics-research.org',
+      lab: 'BioGenomics Core Facility',
+      domain: 'genomics',
+      size: '250,000 rows',
+      contamination: '0.1%',
+      message: 'Detecting ultra-rare single-cell mutation signatures in high-throughput sequencing.',
+      status: 'New'
+    }
+  ];
+
+  function getLeads(){
+    const stored = localStorage.getItem(LEADS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  function saveLeads(leads){
+    localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
+    renderDashboard();
+  }
+
+  function checkAuth(){
+    if(sessionStorage.getItem(AUTH_KEY) === 'true'){
+      authBox.style.display = 'none';
+      dashBox.style.display = 'block';
+      headerUser.style.display = 'block';
+      renderDashboard();
+    } else {
+      authBox.style.display = 'block';
+      dashBox.style.display = 'none';
+      headerUser.style.display = 'none';
+    }
+  }
+
+  loginForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    const user = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value.trim();
+
+    if(user === 'admin' && pass === 'raretect2026'){
+      sessionStorage.setItem(AUTH_KEY, 'true');
+      authError.style.display = 'none';
+      checkAuth();
+    } else {
+      authError.style.display = 'block';
+    }
+  });
+
+  btnLogout.addEventListener('click', function(e){
+    e.preventDefault();
+    sessionStorage.removeItem(AUTH_KEY);
+    checkAuth();
+  });
+
+  function renderDashboard(){
+    const leads = getLeads();
+    statTotal.textContent = leads.length;
+    const physicsCount = leads.filter(l => l.domain === 'physics').length;
+    statPhysics.textContent = physicsCount;
+
+    if(leads.length === 0){
+      leadsTable.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--ink-soft);">No pilot requests submitted yet. Click "Add Demo Leads" to view sample data.</td></tr>';
+      return;
+    }
+
+    leadsTable.innerHTML = leads.map(l => `
+      <tr>
+        <td style="font-family:var(--mono); font-size:12px; color:var(--ink-soft);">${l.date || 'N/A'}</td>
+        <td><b>${escapeHtml(l.name)}</b><br><span style="font-size:12px; color:var(--ink-soft);">${escapeHtml(l.email)}</span></td>
+        <td>${escapeHtml(l.lab || 'N/A')}</td>
+        <td><span class="tag" style="background:var(--paper-dim); color:var(--signal); border:1px solid var(--line);">${escapeHtml(l.domain || 'physics')}</span></td>
+        <td style="font-family:var(--mono); font-size:12.5px;">${escapeHtml(l.size || 'N/A')}</td>
+        <td><span class="tag ${l.status === 'Contacted' ? 'tag-contacted' : 'tag-new'}">${escapeHtml(l.status || 'New')}</span></td>
+        <td style="font-size:13px; max-width:280px; color:var(--ink-soft);">${escapeHtml(l.message || 'No description provided.')}</td>
+      </tr>
+    `).join('');
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  btnSeed.addEventListener('click', () => {
+    saveLeads(DEMO_LEADS);
+  });
+
+  btnClear.addEventListener('click', () => {
+    if(confirm('Are you sure you want to clear all leads?')){
+      saveLeads([]);
+    }
+  });
+
+  btnExport.addEventListener('click', () => {
+    const leads = getLeads();
+    if(leads.length === 0){ alert('No leads to export.'); return; }
+    const headers = ['Date', 'Name', 'Email', 'Lab', 'Domain', 'Dataset Size', 'Contamination', 'Message', 'Status'];
+    const rows = leads.map(l => [l.date, l.name, l.email, l.lab, l.domain, l.size, l.contamination, l.message, l.status]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.map(x => `"${(x||'').replace(/"/g, '""')}"`).join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'raretect_pilot_requests.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  });
+
+  checkAuth();
+})();
+</script>
+
+</body>
+</html>
