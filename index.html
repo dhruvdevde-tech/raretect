@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>raretect — find the signal in the noise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#0A0D14;
+    --paper-dim:#10141D;
+    --ink:#ECEEF3;
+    --ink-soft:#93A0B4;
+    --line:#232A38;
+    --signal:#FF6B4A;
+    --signal-dim:rgba(255,107,74,0.16);
+    --panel:#12161F;
+    --panel-2:#161B26;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --disp: 'Space Grotesk', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  #stars{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    width:100%; height:100%;
+  }
+  .nebula{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse 900px 600px at 82% -8%, rgba(103,92,230,0.16), transparent 60%),
+      radial-gradient(ellipse 700px 500px at -6% 22%, rgba(255,107,74,0.08), transparent 60%),
+      radial-gradient(ellipse 800px 700px at 60% 90%, rgba(58,110,165,0.12), transparent 60%);
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:64px 64px;
+    opacity:0.14;
+    pointer-events:none;
+    z-index:0;
+  }
+  .shooting-star{
+    position:fixed; z-index:1; pointer-events:none;
+    width:2px; height:2px; border-radius:50%;
+    background:#fff;
+    box-shadow:0 0 6px 1px rgba(255,255,255,0.9);
+  }
+  .shooting-star::after{
+    content:"";
+    position:absolute; top:50%; right:0; transform:translateY(-50%);
+    width:90px; height:1px;
+    background:linear-gradient(90deg, rgba(255,255,255,0.85), transparent);
+  }
+  @keyframes shoot{
+    0%{ transform:translate(0,0); opacity:1; }
+    85%{ opacity:1; }
+    100%{ transform:translate(-420px,260px); opacity:0; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .shooting-star{ display:none; }
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px; position:relative; z-index:1;}
+  a{color:inherit;}
+  :focus-visible{outline:2px solid var(--signal); outline-offset:3px;}
+
+  /* ---- nav ---- */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(10,13,20,0.78);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  nav{
+    max-width:1080px; margin:0 auto; padding:18px 28px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .logo{
+    font-family:var(--disp); font-weight:700; font-size:19px;
+    letter-spacing:-0.01em;
+    display:flex; align-items:center; gap:9px;
+  }
+  .logo .dot{
+    width:9px; height:9px; border-radius:50%;
+    background:var(--signal);
+    box-shadow:0 0 0 4px var(--signal-dim);
+  }
+  .navlinks{display:flex; gap:32px; font-size:14px; font-family:var(--mono);}
+  .navlinks a{text-decoration:none; color:var(--ink-soft); transition:color .15s;}
+  .navlinks a:hover{color:var(--signal);}
+  .navcta{
+    font-family:var(--mono); font-size:13px; font-weight:500;
+    background:var(--ink); color:var(--paper);
+    padding:9px 16px; border-radius:2px; text-decoration:none;
+    transition:background .15s;
+  }
+  .navcta:hover{background:var(--signal);}
+  @media(max-width:720px){ .navlinks{display:none;} }
+
+  /* ---- hero ---- */
+  .hero{
+    padding:88px 0 64px;
+    display:grid; grid-template-columns:1.05fr 0.95fr; gap:48px; align-items:center;
+  }
+  @media(max-width:860px){ .hero{grid-template-columns:1fr; padding:56px 0 40px;} }
+  .eyebrow{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--signal); font-weight:600; margin-bottom:18px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{content:"//"; color:var(--ink-soft); opacity:.5;}
+  h1{
+    font-family:var(--disp); font-weight:700; letter-spacing:-0.02em;
+    font-size:clamp(38px,5.2vw,58px); line-height:1.04;
+    margin-bottom:22px;
+  }
+  h1 .accent{color:var(--signal);}
+  .lede{
+    font-size:17px; color:var(--ink-soft); max-width:46ch; margin-bottom:32px;
+  }
+  .cta-row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:34px;}
+  .btn{
+    font-family:var(--mono); font-size:13.5px; font-weight:500;
+    padding:13px 22px; border-radius:2px; text-decoration:none;
+    display:inline-flex; align-items:center; gap:8px;
+    transition:transform .12s ease, background .15s;
+  }
+  .btn-primary{background:var(--signal); color:#fff;}
+  .btn-primary:hover{transform:translateY(-1px); background:#d1492f;}
+  .btn-ghost{background:transparent; color:var(--ink); border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--ink); transform:translateY(-1px);}
+  .hero-stats{display:flex; gap:28px; font-family:var(--mono); flex-wrap:wrap;}
+  .hstat b{display:block; font-size:22px; color:var(--ink); font-weight:600;}
+  .hstat span{font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.05em;}
+
+  /* ---- scatter signature ---- */
+  .scope{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px;
+    padding:18px 18px 14px; position:relative;
+    box-shadow:0 0 0 1px rgba(255,107,74,0.04), 0 20px 60px -20px rgba(0,0,0,0.6);
+  }
+  .scope-head{
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:var(--mono); font-size:11px; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px;
+  }
+  .scope-head .status{color:var(--signal); font-weight:600;}
+  canvas{display:block; width:100%; height:280px; background:
+      linear-gradient(var(--paper-dim) 1px, transparent 1px),
+      linear-gradient(90deg, var(--paper-dim) 1px, transparent 1px);
+    background-size:24px 24px;
+    border-radius:2px;
+  }
+  .scope-foot{
+    display:flex; justify-content:space-between; margin-top:10px;
+    font-family:var(--mono); font-size:11px; color:var(--ink-soft);
+  }
+  .legend{display:flex; gap:14px; align-items:center;}
+  .legend span{display:flex; align-items:center; gap:5px;}
+  .swatch{width:7px; height:7px; border-radius:50%; display:inline-block;}
+
+  /* ---- section shared ---- */
+  section{padding:64px 0; border-top:1px solid var(--line);}
+  .sec-head{max-width:640px; margin-bottom:40px;}
+  .sec-tag{
+    font-family:var(--mono); font-size:12px; color:var(--signal); font-weight:600;
+    text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;
+  }
+  h2{
+    font-family:var(--disp); font-size:clamp(26px,3.4vw,34px); font-weight:700;
+    letter-spacing:-0.015em; margin-bottom:12px;
+  }
+  .sec-desc{color:var(--ink-soft); font-size:15.5px; max-width:56ch;}
+
+  /* ---- problem ---- */
+  .problem-grid{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:4px; overflow:hidden;}
+  @media(max-width:720px){.problem-grid{grid-template-columns:1fr;}}
+  .pcell{background:var(--panel); padding:26px;}
+  .pcell h3{
+    font-family:var(--mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.05em;
+    margin-bottom:10px; display:flex; align-items:center; gap:8px;
+  }
+  .pcell.bad h3{color:var(--ink-soft);}
+  .pcell.good h3{color:var(--signal);}
+  .pcell p{font-size:14.5px; color:var(--ink-soft);}
+  .pcell ul{margin-top:10px; padding-left:0; list-style:none;}
+  .pcell li{font-size:14px; color:var(--ink); padding:5px 0 5px 18px; position:relative;}
+  .pcell.bad li::before{content:"✕"; position:absolute; left:0; color:#B0B7C0; font-size:11px; top:8px;}
+  .pcell.good li::before{content:"✓"; position:absolute; left:0; color:var(--signal); font-size:11px; top:8px;}
+
+  /* ---- pipeline ---- */
+  .pipeline{display:grid; grid-template-columns:repeat(4,1fr); gap:0; position:relative;}
+  @media(max-width:860px){.pipeline{grid-template-columns:1fr;}}
+  .stage{
+    background:var(--panel); border:1px solid var(--line); padding:24px 20px;
+    position:relative;
+  }
+  .pipeline .stage:not(:last-child){border-right:none;}
+  @media(max-width:860px){ .pipeline .stage:not(:last-child){border-right:1px solid var(--line); border-bottom:none;} }
+  .stage-num{
+    font-family:var(--mono); font-size:11px; color:var(--signal); font-weight:600;
+    margin-bottom:14px; display:block;
+  }
+  .stage h4{font-family:var(--disp); font-size:16.5px; font-weight:600; margin-bottom:8px;}
+  .stage p{font-size:13.5px; color:var(--ink-soft); line-height:1.5;}
+  .stage-arrow{
+    position:absolute; right:-11px; top:50%; transform:translateY(-50%);
+    width:22px; height:22px; background:var(--paper); border:1px solid var(--line);
+    border-radius:50%; z-index:2; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:11px; color:var(--ink-soft);
+  }
+  @media(max-width:860px){ .stage-arrow{display:none;} }
+
+  /* ---- results ---- */
+  .results{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:4px; overflow:hidden;}
+  @media(max-width:720px){.results{grid-template-columns:1fr 1fr;}}
+  .result{background:var(--panel); padding:26px 22px;}
+  .result .val{font-family:var(--mono); font-size:30px; font-weight:600; color:var(--ink);}
+  .result .val .u{font-size:15px; color:var(--ink-soft);}
+  .result .lbl{font-size:12.5px; color:var(--ink-soft); margin-top:6px; text-transform:uppercase; letter-spacing:.04em; font-family:var(--mono);}
+  .result.hl .val{color:var(--signal);}
+
+  /* ---- code ---- */
+  .codebox{
+    background:#080A10; color:#E7EAED; border-radius:4px; padding:22px 24px;
+    border:1px solid var(--line);
+    font-family:var(--mono); font-size:13.5px; line-height:1.7; overflow-x:auto;
+  }
+  .codebox .c1{color:#8FA3C7;}
+  .codebox .c2{color:#F0B27E;}
+  .codebox .c3{color:#EF8C7C;}
+  .codebox .c4{color:#A8D8B9;}
+  .code-tabs{display:flex; gap:2px; margin-bottom:0;}
+  .code-tab{
+    font-family:var(--mono); font-size:12px; padding:9px 16px;
+    background:var(--paper-dim); color:var(--ink-soft); border-radius:4px 4px 0 0;
+  }
+  .code-tab.active{background:#080A10; color:#E7EAED;}
+
+  /* ---- icp ---- */
+  .icp-list{display:flex; flex-direction:column; border:1px solid var(--line); border-radius:4px; overflow:hidden; background:var(--panel);}
+  .icp-row{
+    display:grid; grid-template-columns:180px 1fr; gap:20px;
+    padding:20px 24px; border-bottom:1px solid var(--line);
+  }
+  .icp-row:last-child{border-bottom:none;}
+  @media(max-width:640px){.icp-row{grid-template-columns:1fr; gap:6px;}}
+  .icp-tag{font-family:var(--mono); font-size:12.5px; color:var(--signal); font-weight:600; text-transform:uppercase; letter-spacing:.04em; padding-top:2px;}
+  .icp-row p{font-size:14.5px; color:var(--ink); }
+  .icp-row p b{font-weight:600;}
+
+  /* ---- cta / footer ---- */
+  .final-cta{
+    text-align:center; padding:80px 0; border-top:1px solid var(--line);
+  }
+  .final-cta h2{margin-bottom:14px;}
+  .final-cta .sec-desc{margin:0 auto 30px; text-align:center;}
+  .final-cta .cta-row{justify-content:center;}
+  footer{
+    border-top:1px solid var(--line); padding:28px 0; font-family:var(--mono); font-size:12.5px; color:var(--ink-soft);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+
+  /* ---- pilot form ---- */
+  .pilot-form{
+    max-width:640px; margin:0 auto; text-align:left;
+    background:var(--panel); border:1px solid var(--line); border-radius:6px;
+    padding:28px 28px 22px;
+  }
+  .hp-field{ position:absolute; left:-9999px; opacity:0; height:0; overflow:hidden; }
+  .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  @media(max-width:560px){ .form-row{grid-template-columns:1fr;} }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field-full{ margin-bottom:18px; }
+  .field label{
+    font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--ink-soft);
+  }
+  .field input, .field select, .field textarea{
+    background:var(--paper); border:1px solid var(--line); border-radius:3px;
+    color:var(--ink); font-family:var(--sans); font-size:14.5px;
+    padding:10px 12px; width:100%; resize:vertical;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--signal); box-shadow:0 0 0 3px var(--signal-dim);
+  }
+  .field select{ appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%2393A0B4'/></svg>"); background-repeat:no-repeat; background-position:right 12px center; }
+  .form-footer{ display:flex; gap:14px; align-items:center; margin-top:6px; flex-wrap:wrap; }
+  .form-footer .btn{ border:none; cursor:pointer; font-size:13.5px; }
+  .form-footer .btn:disabled{ opacity:0.6; cursor:not-allowed; }
+  .form-status{
+    margin-top:14px; font-family:var(--mono); font-size:13px; display:none;
+  }
+  .form-status.ok{ display:block; color:#7FD99A; }
+  .form-status.err{ display:block; color:var(--signal); }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div class="nebula"></div>
+
+<header>
+  <nav>
+    <div class="logo"><span class="dot"></span>raretect</div>
+    <div class="navlinks">
+      <a href="#problem">problem</a>
+      <a href="#pipeline">pipeline</a>
+      <a href="#results">results</a>
+      <a href="#quickstart">quickstart</a>
+      <a href="#icp">who it's for</a>
+    </div>
+    <a class="navcta" href="#quickstart">pip install raretect</a>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <section class="hero" style="border:none;">
+    <div>
+      <div class="eyebrow">rare-event detection toolkit</div>
+      <h1>Find the <span class="accent">signal</span><br>in the noise.</h1>
+      <p class="lede">A Python toolkit built for research labs where the thing you're looking for is 1% of the data — dark matter events, rare particle collisions, anomalous sensor reads. Preprocessing, feature engineering, and evaluation, tuned for extreme imbalance.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#quickstart">Get started →</a>
+        <a class="btn btn-ghost" href="#results">See the numbers</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat"><b>0.997</b><span>ROC-AUC</span></div>
+        <div class="hstat"><b>0.77</b><span>PR-AUC @ 1% signal</span></div>
+        <div class="hstat"><b>9/9</b><span>tests passing</span></div>
+      </div>
+    </div>
+
+    <div class="scope">
+      <div class="scope-head">
+        <span>detector_feed.live</span>
+        <span class="status" id="statusText">● scanning</span>
+      </div>
+      <canvas id="scatter" width="600" height="560"></canvas>
+      <div class="scope-foot">
+        <div class="legend">
+          <span><i class="swatch" style="background:#B0B7C0"></i>background</span>
+          <span><i class="swatch" style="background:#E8543A"></i>signal</span>
+        </div>
+        <span id="countText">events: 0</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="problem">
+    <div class="sec-head">
+      <div class="sec-tag">the problem</div>
+      <h2>Generic anomaly detection breaks on scientific data.</h2>
+      <p class="sec-desc">Most ML tooling is built for fraud and security, where anomalies are loud. Detector data is different — the signal is faint, spread across correlated channels, and buried under legitimate outlier-heavy background.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="pcell bad">
+        <h3>Hand-rolled, every time</h3>
+        <ul>
+          <li>Notebook-by-notebook preprocessing, redone per dataset</li>
+          <li>StandardScaler distorted by the very outliers you want to find</li>
+          <li>Accuracy reported at 99% while missing every real event</li>
+          <li>One model, one blind spot — subtle multi-channel signals slip through</li>
+        </ul>
+      </div>
+      <div class="pcell good">
+        <h3>raretect's approach</h3>
+        <ul>
+          <li>One pipeline, fit to any tabular detector-style dataset</li>
+          <li>Robust scaling + imputation built for outlier-heavy data</li>
+          <li>PR-AUC, ROC-AUC, precision @ target recall — metrics that hold at 1%</li>
+          <li>Rank-averaged ensemble catches what a single model misses</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="pipeline">
+    <div class="sec-head">
+      <div class="sec-tag">how it works</div>
+      <h2>Four stages, one call.</h2>
+      <p class="sec-desc">Every stage is inspectable and swappable — but the defaults are tuned for sparse, high-dimensional, imbalanced data out of the box.</p>
+    </div>
+    <div class="pipeline">
+      <div class="stage">
+        <span class="stage-num">01</span>
+        <h4>Feature Engineer</h4>
+        <p>Row-wise stats and per-channel z-score deviations, so signals spread across many channels don't hide in the average.</p>
+        <div class="stage-arrow">→</div>
+      </div>
+      <div class="stage">
+        <span class="stage-num">02</span>
+        <h4>Preprocessor</h4>
+        <p>Median imputation and robust scaling — built for data that's already full of outliers by definition.</p>
+        <div class="stage-arrow">→</div>
+      </div>
+      <div class="stage">
+        <span class="stage-num">03</span>
+        <h4>Ensemble Model</h4>
+        <p>IsolationForest + a lightweight autoencoder, rank-averaged, so no single model's blind spot dominates the score.</p>
+        <div class="stage-arrow">→</div>
+      </div>
+      <div class="stage">
+        <span class="stage-num">04</span>
+        <h4>Evaluate</h4>
+        <p>PR-AUC, ROC-AUC, and precision at your chosen operating recall — not accuracy, which lies at 1% contamination.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="sec-head">
+      <div class="sec-tag">proof, not promises</div>
+      <h2>Benchmarked on synthetic detector data.</h2>
+      <p class="sec-desc">5,000 events, 20 correlated channels, 1% signal rate — the signal shifted subtly across multiple channels rather than concentrated in one, the way real detector anomalies behave.</p>
+    </div>
+    <div class="results">
+      <div class="result hl">
+        <div class="val">0.997</div>
+        <div class="lbl">ROC-AUC</div>
+      </div>
+      <div class="result">
+        <div class="val">0.77</div>
+        <div class="lbl">PR-AUC</div>
+      </div>
+      <div class="result">
+        <div class="val">0.55</div>
+        <div class="lbl">Precision @ 90% recall</div>
+      </div>
+      <div class="result">
+        <div class="val">5<span class="u">/5</span></div>
+        <div class="lbl">Top-ranked events = true signal</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <div class="sec-head">
+      <div class="sec-tag">quickstart</div>
+      <h2>From raw CSV to PR/ROC report in five lines.</h2>
+      <p class="sec-desc">No config files to start. Fit on your data, swap in your own model or feature module when you outgrow the defaults.</p>
+    </div>
+    <div class="code-tabs"><div class="code-tab active">quickstart.py</div></div>
+    <div class="codebox"><span class="c1"># pip install raretect</span><br>
+<span class="c2">from</span> raretect <span class="c2">import</span> Pipeline, generate_synthetic_detector_data<br><br>
+df, labels = generate_synthetic_detector_data(n_samples=<span class="c3">5000</span>, n_features=<span class="c3">20</span>)<br><br>
+pipe = Pipeline(contamination=<span class="c3">0.01</span>)<br>
+pipe.fit(df)<br><br>
+scores = pipe.score(df)              <span class="c1"># higher = more anomalous</span><br>
+metrics = pipe.evaluate(df, labels)  <span class="c1"># {'pr_auc': 0.77, 'roc_auc': 0.997, ...}</span></div>
+  </section>
+
+  <section id="icp">
+    <div class="sec-head">
+      <div class="sec-tag">who it's for</div>
+      <h2>Built for labs, not fraud teams.</h2>
+    </div>
+    <div class="icp-list">
+      <div class="icp-row">
+        <div class="icp-tag">physics / astro</div>
+        <p><b>Dark matter search, particle collision analysis, gravitational wave detection</b> — the original use case, and where raretect is being piloted first.</p>
+      </div>
+      <div class="icp-row">
+        <div class="icp-tag">researchers</div>
+        <p><b>Grad students and research interns</b> who need a working detection pipeline fast, without becoming ML-infrastructure engineers.</p>
+      </div>
+      <div class="icp-row">
+        <div class="icp-tag">adjacent science</div>
+        <p><b>Genomics, spectroscopy, industrial sensor monitoring</b> — any domain with the same shape of problem: rare, multivariate, correlated-background data.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta" style="border-top:1px solid var(--line);">
+    <div class="sec-tag" style="text-align:center;">get started</div>
+    <h2>Bring your own detector data.</h2>
+    <p class="sec-desc">Currently piloting with research labs. If your data looks like this problem, let's talk.</p>
+
+    <form id="pilotForm" class="pilot-form" name="pilot-request" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+      <input type="hidden" name="form-name" value="pilot-request" />
+      <p class="hp-field"><label>Don't fill this out: <input name="bot-field" /></label></p>
+
+      <div class="form-row">
+        <div class="field">
+          <label for="f-name">Name</label>
+          <input id="f-name" name="name" type="text" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="f-email">Email</label>
+          <input id="f-email" name="email" type="email" required autocomplete="email" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="f-lab">Lab / institution</label>
+          <input id="f-lab" name="lab" type="text" placeholder="e.g. dark matter research group" />
+        </div>
+        <div class="field">
+          <label for="f-domain">Data domain</label>
+          <select id="f-domain" name="domain">
+            <option value="physics">Physics / astro</option>
+            <option value="genomics">Genomics</option>
+            <option value="spectroscopy">Spectroscopy</option>
+            <option value="sensors">Industrial sensors</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="f-size">Dataset size (rows)</label>
+          <input id="f-size" name="dataset_size" type="text" placeholder="e.g. ~50,000 events" />
+        </div>
+        <div class="field">
+          <label for="f-contamination">Est. contamination rate</label>
+          <input id="f-contamination" name="contamination_rate" type="text" placeholder="e.g. <1% signal" />
+        </div>
+      </div>
+      <div class="field field-full">
+        <label for="f-msg">What are you trying to detect?</label>
+        <textarea id="f-msg" name="message" rows="3" placeholder="A sentence or two on your dataset and what counts as a rare event."></textarea>
+      </div>
+
+      <div class="form-footer">
+        <button type="submit" class="btn btn-primary" id="pilotSubmit">Request a pilot →</button>
+        <a class="btn btn-ghost" href="#quickstart">Read the docs</a>
+      </div>
+      <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <span>raretect — rare-event detection toolkit</span>
+  <span>MIT licensed · built for research</span>
+</footer>
+
+<script>
+(function(){
+  const form = document.getElementById('pilotForm');
+  const status = document.getElementById('formStatus');
+  const submitBtn = document.getElementById('pilotSubmit');
+  if(!form) return;
+
+  function encode(data){
+    return Object.keys(data)
+      .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(data[k]))
+      .join("&");
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const formData = new FormData(form);
+    const payload = {};
+    formData.forEach((v,k)=> payload[k] = v);
+
+    if(payload['bot-field']){ return; } // honeypot tripped, silently ignore
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    status.textContent = '';
+    status.className = 'form-status';
+
+    fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: encode(payload),
+    })
+      .then(() => {
+        form.reset();
+        form.style.display = 'none';
+        status.textContent = '✓ Request received — we\'ll follow up by email shortly.';
+        status.className = 'form-status ok';
+        status.style.display = 'block';
+      })
+      .catch(() => {
+        status.textContent = 'Couldn\'t submit right now — email hello@raretect.dev directly instead.';
+        status.className = 'form-status err';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Request a pilot →';
+      });
+  });
+})();
+</script>
+
+<script>
+(function(){
+  // ---- ambient starfield ----
+  const starCanvas = document.getElementById('stars');
+  const sctx = starCanvas.getContext('2d');
+  const reduceMotionGlobal = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let stars = [];
+
+  function sizeStars(){
+    starCanvas.width = window.innerWidth * devicePixelRatio;
+    starCanvas.height = window.innerHeight * devicePixelRatio;
+    starCanvas.style.width = window.innerWidth + 'px';
+    starCanvas.style.height = window.innerHeight + 'px';
+    sctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    const count = Math.floor((window.innerWidth * window.innerHeight) / 6500);
+    stars = Array.from({length: count}, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.3 + 0.3,
+      base: Math.random() * 0.5 + 0.25,
+      speed: Math.random() * 0.015 + 0.004,
+      phase: Math.random() * Math.PI * 2,
+      drift: (Math.random() - 0.5) * 0.02,
+    }));
+  }
+  sizeStars();
+  window.addEventListener('resize', sizeStars);
+
+  let sframe = 0;
+  function drawStars(){
+    sframe++;
+    sctx.clearRect(0,0,window.innerWidth, window.innerHeight);
+    stars.forEach(s=>{
+      const tw = reduceMotionGlobal ? s.base : s.base + Math.sin(sframe*s.speed + s.phase) * 0.35;
+      sctx.beginPath();
+      sctx.fillStyle = `rgba(255,255,255,${Math.max(0,Math.min(1,tw))})`;
+      sctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      sctx.fill();
+      if(!reduceMotionGlobal){
+        s.y += s.drift;
+        if(s.y > window.innerHeight) s.y = 0;
+        if(s.y < 0) s.y = window.innerHeight;
+      }
+    });
+    requestAnimationFrame(drawStars);
+  }
+  drawStars();
+
+  // ---- occasional shooting star ----
+  function spawnShootingStar(){
+    if(reduceMotionGlobal) return;
+    const el = document.createElement('div');
+    el.className = 'shooting-star';
+    const startX = Math.random() * window.innerWidth * 0.7 + window.innerWidth * 0.2;
+    const startY = Math.random() * window.innerHeight * 0.35;
+    el.style.left = startX + 'px';
+    el.style.top = startY + 'px';
+    el.style.animation = 'shoot 1.1s ease-in forwards';
+    document.body.appendChild(el);
+    setTimeout(()=> el.remove(), 1200);
+  }
+  function scheduleShootingStar(){
+    const delay = 4000 + Math.random()*6000;
+    setTimeout(()=>{ spawnShootingStar(); scheduleShootingStar(); }, delay);
+  }
+  scheduleShootingStar();
+})();
+
+(function(){
+  const canvas = document.getElementById('scatter');
+  const ctx = canvas.getContext('2d');
+  const statusText = document.getElementById('statusText');
+  const countText = document.getElementById('countText');
+
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const W = () => canvas.getBoundingClientRect().width;
+  const H = () => canvas.getBoundingClientRect().height;
+
+  let points = [];
+  let signalIndex = -1;
+  let signalPulse = 0;
+  let frame = 0;
+  let eventCount = 0;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function seed(){
+    points = [];
+    const n = 140;
+    for(let i=0;i<n;i++){
+      // clustered background, gaussian-ish
+      const cx = W()*0.5, cy = H()*0.55;
+      const spread = Math.min(W(),H())*0.34;
+      let x, y;
+      x = cx + (Math.random()+Math.random()+Math.random()-1.5) * spread * 0.6;
+      y = cy + (Math.random()+Math.random()+Math.random()-1.5) * spread * 0.5;
+      points.push({x,y,r:2.1,signal:false,age:0});
+    }
+    signalIndex = -1;
+  }
+  seed();
+
+  function plantSignal(){
+    const x = W()*0.5 + (Math.random()-0.5)*W()*0.62;
+    const y = H()*0.5 + (Math.random()-0.5)*H()*0.62;
+    points.push({x,y,r:3.4,signal:true,age:0});
+    signalIndex = points.length-1;
+    signalPulse = 0;
+    eventCount++;
+    countText.textContent = 'events: ' + (5000 + eventCount);
+    statusText.textContent = '● signal detected';
+    statusText.style.color = '#E8543A';
+    setTimeout(()=>{ statusText.textContent = '● scanning'; statusText.style.color = '#E8543A'; }, 1400);
+  }
+
+  function draw(){
+    frame++;
+    const w = W(), h = H();
+    ctx.clearRect(0,0,w,h);
+
+    // background points
+    points.forEach((p,i)=>{
+      if(p.signal) return;
+      ctx.beginPath();
+      ctx.fillStyle = '#B0B7C0';
+      ctx.globalAlpha = 0.55;
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // signal point(s)
+    points.forEach((p)=>{
+      if(!p.signal) return;
+      const pulse = reduceMotion ? 0 : Math.sin(frame*0.12)*1.5;
+      // halo
+      const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,14+pulse);
+      grad.addColorStop(0,'rgba(232,84,58,0.35)');
+      grad.addColorStop(1,'rgba(232,84,58,0)');
+      ctx.beginPath();
+      ctx.fillStyle = grad;
+      ctx.arc(p.x,p.y,14+pulse,0,Math.PI*2);
+      ctx.fill();
+      // core
+      ctx.beginPath();
+      ctx.fillStyle = '#E8543A';
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+    });
+
+    if(!reduceMotion) requestAnimationFrame(draw);
+  }
+
+  draw();
+  if(reduceMotion){
+    plantSignal();
+  } else {
+    setInterval(()=>{
+      if(points.length > 220) seed();
+      plantSignal();
+    }, 2600);
+  }
+})();
+</script>
+
+</body>
+</html>
