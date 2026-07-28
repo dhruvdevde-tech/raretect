@@ -332,6 +332,19 @@
     link.remove();
   });
 
+  // Auto-seed demo leads on first visit if storage is empty
+  if (!localStorage.getItem(LEADS_KEY)) {
+    localStorage.setItem(LEADS_KEY, JSON.stringify(DEMO_LEADS));
+  }
+
+  // Real-time synchronization for new submissions across tabs
+  window.addEventListener('storage', (e) => {
+    if (e.key === LEADS_KEY || e.key === AUTH_KEY) {
+      renderDashboard();
+    }
+  });
+  setInterval(renderDashboard, 1500);
+
   checkAuth();
 })();
 </script>

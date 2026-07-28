@@ -748,12 +748,12 @@ report = print_rare_event_report(<br>
 
     setTimeout(() => {
       form.reset();
-      status.textContent = '✓ Pilot request received — view in Admin Portal or check email!';
+      status.innerHTML = '✓ Pilot request received! <a href="admin.html" style="color:#7FD99A; text-decoration:underline; font-weight:600;">View in Admin Portal →</a>';
       status.className = 'form-status ok';
       status.style.display = 'block';
       submitBtn.disabled = false;
       submitBtn.textContent = 'Request a pilot →';
-    }, 600);
+    }, 400);
   });
 })();
 
