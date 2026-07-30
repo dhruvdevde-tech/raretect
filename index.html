@@ -45,6 +45,36 @@
     overflow-x: hidden;
   }
 
+  /* Space Background Canvas & Cosmic Nebulae */
+  #spaceCanvas {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    width: 100%; height: 100%;
+  }
+  .space-nebula {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 900px 600px at 80% -10%, rgba(103, 92, 230, 0.14), transparent 60%),
+      radial-gradient(ellipse 700px 500px at -10% 30%, rgba(255, 90, 54, 0.08), transparent 60%),
+      radial-gradient(ellipse 800px 700px at 60% 90%, rgba(58, 110, 165, 0.12), transparent 60%);
+  }
+
+  /* Meteor Shooting Star Animation */
+  .meteor {
+    position: fixed; z-index: 0; pointer-events: none;
+    width: 2px; height: 2px; border-radius: 50%; background: #fff;
+    box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.9);
+  }
+  .meteor::after {
+    content: ""; position: absolute; top: 50%; right: 0; transform: translateY(-50%);
+    width: 110px; height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.9), transparent);
+  }
+  @keyframes meteorShoot {
+    0% { transform: translate(0, 0) rotate(-35deg); opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translate(-500px, 320px) rotate(-35deg); opacity: 0; }
+  }
+
   /* Grid Background Overlay */
   .bg-grid {
     position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -52,7 +82,7 @@
       linear-gradient(var(--border) 1px, transparent 1px),
       linear-gradient(90deg, var(--border) 1px, transparent 1px);
     background-size: 48px 48px;
-    opacity: 0.18;
+    opacity: 0.15;
   }
 
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
@@ -75,7 +105,6 @@
     opacity: 1; transform: translateY(0);
   }
 
-  /* Staggered Delay for Feature Cards */
   .grid-3 .feature-card:nth-child(1) { transition-delay: 0.05s; }
   .grid-3 .feature-card:nth-child(2) { transition-delay: 0.15s; }
   .grid-3 .feature-card:nth-child(3) { transition-delay: 0.25s; }
@@ -338,6 +367,8 @@
 </head>
 <body>
 
+<canvas id="spaceCanvas"></canvas>
+<div class="space-nebula"></div>
 <div class="bg-grid"></div>
 
 <div class="announcement">
@@ -639,6 +670,98 @@ report = <span class="c-fn">print_rare_event_report</span>(
 </footer>
 
 <script>
+// ---- Ambient Space Background Animation (Starfield & Constellations) ----
+(function(){
+  const canvas = document.getElementById('spaceCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+
+  function resize(){
+    canvas.width = window.innerWidth * devicePixelRatio;
+    canvas.height = window.innerHeight * devicePixelRatio;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+    const count = Math.floor((window.innerWidth * window.innerHeight) / 7500);
+    stars = Array.from({length: count}, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.4 + 0.3,
+      baseAlpha: Math.random() * 0.5 + 0.25,
+      twinkleSpeed: Math.random() * 0.015 + 0.005,
+      phase: Math.random() * Math.PI * 2,
+      vx: (Math.random() - 0.5) * 0.15,
+      vy: (Math.random() - 0.5) * 0.15,
+    }));
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let frame = 0;
+  function render(){
+    frame++;
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    // Draw constellation lines between nearby stars
+    for(let i = 0; i < stars.length; i++){
+      for(let j = i + 1; j < stars.length; j++){
+        const dx = stars[i].x - stars[j].x;
+        const dy = stars[i].y - stars[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < 95){
+          ctx.beginPath();
+          ctx.moveTo(stars[i].x, stars[i].y);
+          ctx.lineTo(stars[j].x, stars[j].y);
+          ctx.strokeStyle = `rgba(255, 90, 54, ${ (1 - dist/95) * 0.07 })`;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw & drift star particles
+    stars.forEach(s => {
+      s.x += s.vx;
+      s.y += s.vy;
+      if(s.x < 0) s.x = window.innerWidth;
+      if(s.x > window.innerWidth) s.x = 0;
+      if(s.y < 0) s.y = window.innerHeight;
+      if(s.y > window.innerHeight) s.y = 0;
+
+      const alpha = s.baseAlpha + Math.sin(frame * s.twinkleSpeed + s.phase) * 0.35;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, Math.min(1, alpha))})`;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    requestAnimationFrame(render);
+  }
+  render();
+
+  // Meteor shooting stars
+  function spawnMeteor(){
+    const el = document.createElement('div');
+    el.className = 'meteor';
+    const startX = Math.random() * window.innerWidth * 0.8 + window.innerWidth * 0.1;
+    const startY = Math.random() * window.innerHeight * 0.35;
+    el.style.left = startX + 'px';
+    el.style.top = startY + 'px';
+    el.style.animation = 'meteorShoot 1.2s ease-in forwards';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
+  function scheduleMeteor(){
+    setTimeout(() => {
+      spawnMeteor();
+      scheduleMeteor();
+    }, 4500 + Math.random() * 5500);
+  }
+  scheduleMeteor();
+})();
+
 // ---- Scroll Reveal Intersection Observer ----
 (function(){
   const observer = new IntersectionObserver((entries) => {
